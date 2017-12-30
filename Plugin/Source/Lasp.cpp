@@ -13,6 +13,14 @@ namespace
         if (!temp.empty() && temp.back() == '\n') temp.pop_back();
         Lasp::Debug::log("PortAudio> %s", temp.c_str());
     }
+
+    struct LaspDeviceInfo
+    {
+        const char* name;
+        double defaultSampleRate;
+        int maxInputChannels;
+        int maxOutputChannels;
+    };
 }
 
 extern "C"
@@ -20,6 +28,12 @@ extern "C"
     void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces)
     {
         PaUtil_SetDebugPrintFunction(PaPrintCallback);
+
+        auto err = Pa_Initialize();
+        if (err == paNoError)
+            LASP_LOG("Initialized.");
+        else
+            LASP_PAERROR("Initialization failed.", err);
     }
 
     void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
@@ -31,9 +45,28 @@ extern "C"
         Lasp::Debug::setLogFunction(p);
     }
 
-    void UNITY_INTERFACE_EXPORT * UNITY_INTERFACE_API LaspCreateDriver()
+    int UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API LaspGetDeviceCount()
     {
-        return new Lasp::Driver();
+        return Pa_GetDeviceCount();
+    }
+
+    LaspDeviceInfo UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API LaspGetDeviceInfo(int deviceId)
+    {
+        LaspDeviceInfo info;
+
+        auto deviceInfo = Pa_GetDeviceInfo(deviceId);
+
+        info.name = deviceInfo->name;
+        info.defaultSampleRate = deviceInfo->defaultSampleRate;
+        info.maxInputChannels = deviceInfo->maxInputChannels;
+        info.maxOutputChannels = deviceInfo->maxOutputChannels;
+
+        return info;
+    }
+
+    void UNITY_INTERFACE_EXPORT * UNITY_INTERFACE_API LaspCreateDriver(int deviceId = -1)
+    {
+        return new Lasp::Driver(deviceId);
     }
 
     void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API LaspDeleteDriver(void* driver)
@@ -41,9 +74,9 @@ extern "C"
         delete reinterpret_cast<Lasp::Driver*>(driver);
     }
 
-    bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API LaspOpenStream(void* driver)
+    bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API LaspOpenStream(void* driver, int channelCount = 1)
     {
-        return reinterpret_cast<Lasp::Driver*>(driver)->OpenStream();
+        return reinterpret_cast<Lasp::Driver*>(driver)->OpenStream(channelCount);
     }
 
     void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API LaspCloseStream(void* driver)

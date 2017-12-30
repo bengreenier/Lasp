@@ -14,13 +14,14 @@ namespace Lasp
     {
     public:
 
-        Driver() : stream_(nullptr)
+        Driver(PaDeviceIndex deviceId = -1) : stream_(nullptr)
         {
-            auto err = Pa_Initialize();
-            if (err == paNoError)
-                LASP_LOG("Initialized.");
-            else
-                LASP_PAERROR("Initialization failed.", err);
+            if (deviceId == -1)
+            {
+                deviceId = Pa_GetDefaultInputDevice();
+            }
+
+            deviceId_ = deviceId;
         }
 
         ~Driver()
@@ -34,7 +35,7 @@ namespace Lasp
                 LASP_PAERROR("Finalization failed.", err);
         }
 
-        bool OpenStream()
+        bool OpenStream(int channelCount = 1)
         {
             if (stream_ != nullptr)
             {
@@ -47,22 +48,22 @@ namespace Lasp
             // Why don't we use the device default from the first? Because it
             // may give 96kHz. That's too high for our applications.
             LASP_LOG("Try to open the default input device with 48kHz sample rate.");
-            auto err = TryOpenStream(48000);
+            auto err = TryOpenStream(48000, channelCount);
             if (err != paNoError)
             {
                 LASP_LOG("Failed. Retry with 44.1kHz.");
-                err = TryOpenStream(44100);
+                err = TryOpenStream(44100, channelCount);
                 if (err != paNoError)
                 {
                     LASP_LOG("Failed again. This time retry with the device default rate.");
-                    auto info = Pa_GetDeviceInfo(Pa_GetDefaultInputDevice());
+                    auto info = Pa_GetDeviceInfo(deviceId_);
                     if (info == nullptr)
                     {
                         LASP_PAERROR("Failed to access the default input device.", err);
                         return false;
                     }
 
-                    err = TryOpenStream(static_cast<float>(info->defaultSampleRate));
+                    err = TryOpenStream(static_cast<float>(info->defaultSampleRate), channelCount);
                     if (err != paNoError)
                     {
                         LASP_PAERROR("Failed to open the default input device.", err);
@@ -131,6 +132,7 @@ namespace Lasp
 
     private:
 
+        PaDeviceIndex deviceId_;
         PaStream* stream_;
         float sampleRate_;
 
@@ -143,13 +145,13 @@ namespace Lasp
         // The buffers are assigned in this order: [non-filtered, low, middle, high]
         std::array<RingBuffer, 4> buffers_;
 
-        PaError TryOpenStream(float sampleRate)
+        PaError TryOpenStream(float sampleRate, int channelCount)
         {
-            auto deviceInfo = Pa_GetDeviceInfo(Pa_GetDefaultInputDevice());
+            auto deviceInfo = Pa_GetDeviceInfo(deviceId_);
 
             PaStreamParameters params;
-            params.channelCount = 1;
-            params.device = Pa_GetDefaultInputDevice();
+            params.channelCount = channelCount;
+            params.device = deviceId_;
             params.hostApiSpecificStreamInfo = nullptr;
             params.sampleFormat = paFloat32;
             params.suggestedLatency = deviceInfo->defaultLowInputLatency;
