@@ -16,6 +16,10 @@ namespace
 
     struct LaspDeviceInfo
     {
+		// indicates a successful operation
+		bool isValid;
+
+		int id;
         const char* name;
         double defaultSampleRate;
         int maxInputChannels;
@@ -38,6 +42,12 @@ extern "C"
 
     void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
     {
+		auto err = Pa_Terminate();
+
+		if (err == paNoError)
+			LASP_LOG("Termianted.");
+		else
+			LASP_PAERROR("Termination failed.", err);
     }
 
     void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API LaspReplaceLogger(Lasp::Debug::LogFunction p)
@@ -50,16 +60,28 @@ extern "C"
         return Pa_GetDeviceCount();
     }
 
-    LaspDeviceInfo UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API LaspGetDeviceInfo(int deviceId)
+    LaspDeviceInfo UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API LaspGetDeviceInfo(int deviceId = -1)
     {
+		if (deviceId == -1)
+		{
+			deviceId = Pa_GetDefaultInputDevice();
+		}
+
         LaspDeviceInfo info;
+		
+		info.isValid = false;
 
         auto deviceInfo = Pa_GetDeviceInfo(deviceId);
 
-        info.name = deviceInfo->name;
-        info.defaultSampleRate = deviceInfo->defaultSampleRate;
-        info.maxInputChannels = deviceInfo->maxInputChannels;
-        info.maxOutputChannels = deviceInfo->maxOutputChannels;
+		if (deviceInfo != NULL)
+		{
+			info.isValid = true;
+			info.id = deviceId;
+			info.name = deviceInfo->name;
+			info.defaultSampleRate = deviceInfo->defaultSampleRate;
+			info.maxInputChannels = deviceInfo->maxInputChannels;
+			info.maxOutputChannels = deviceInfo->maxOutputChannels;
+		}
 
         return info;
     }

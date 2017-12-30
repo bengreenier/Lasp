@@ -14,10 +14,17 @@ namespace Lasp
     // main threads. Calling Dispose() is the safest way to clean things up.
     public class LaspStream : IDisposable
     {
-        public LaspStream()
+        public LaspDeviceInfo Device
         {
-            PluginEntry.SetupLogger();
-            _driver = PluginEntry.CreateDriver();
+            get;
+            private set;
+        }
+
+        public LaspStream(int deviceId = -1)
+        {
+            Device = PluginEntry.GetDeviceInfo(deviceId);
+
+            _driver = PluginEntry.CreateDriver(deviceId);
         }
 
         ~LaspStream()
@@ -40,9 +47,9 @@ namespace Lasp
             }
         }
 
-        public bool Open()
+        public bool Open(int channelCount = 1)
         {
-            return PluginEntry.OpenStream(_driver);
+            return PluginEntry.OpenStream(_driver, channelCount);
         }
 
         public void Close()

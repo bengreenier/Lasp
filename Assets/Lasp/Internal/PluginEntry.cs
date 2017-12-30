@@ -7,19 +7,28 @@ using System.Runtime.InteropServices;
 namespace Lasp
 {
     public enum FilterType { Bypass, LowPass, BandPass, HighPass }
-
+    
     public static class PluginEntry
     {
+        public const int DefaultDeviceId = -1;
+        public const int DefaultChannelCount = 1;
+
         #region Plugin interface
 
+        [DllImport("Lasp", EntryPoint = "LaspGetDeviceCount")]
+        public static extern int GetDeviceCount();
+
+        [DllImport("Lasp", EntryPoint = "LaspGetDeviceInfo")]
+        public static extern LaspDeviceInfo GetDeviceInfo(int deviceId = DefaultDeviceId);
+
         [DllImport("Lasp", EntryPoint="LaspCreateDriver")]
-        public static extern IntPtr CreateDriver();
+        public static extern IntPtr CreateDriver(int deviceId = DefaultDeviceId);
 
         [DllImport("Lasp", EntryPoint="LaspDeleteDriver")]
         public static extern void DeleteDriver(IntPtr driver);
 
         [DllImport("Lasp", EntryPoint="LaspOpenStream")]
-        public static extern bool OpenStream(IntPtr driver);
+        public static extern bool OpenStream(IntPtr driver, int channelCount = DefaultChannelCount);
 
         [DllImport("Lasp", EntryPoint="LaspCloseStream")]
         public static extern void CloseStream(IntPtr driver);

@@ -1,6 +1,7 @@
 // LASP - Low-latency Audio Signal Processing plugin for Unity
 // https://github.com/keijiro/Lasp
 
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Lasp
@@ -10,6 +11,43 @@ namespace Lasp
     public static class AudioInput
     {
         #region Public methods
+        
+        private static LaspDeviceInfo _currentDevice = new LaspDeviceInfo()
+        {
+            id = PluginEntry.DefaultDeviceId
+        };
+
+        public static LaspDeviceInfo CurrentDevice
+        {
+            get
+            {
+                return _currentDevice;
+            }
+
+            set
+            {
+                _currentDevice = value;
+                Terminate();
+                Initialize();
+            }
+        }
+        
+        private static int _currentChannelCount = PluginEntry.DefaultChannelCount;
+
+        public static int CurrentChannelCount
+        {
+            get
+            {
+                return _currentChannelCount;
+            }
+
+            set
+            {
+                _currentChannelCount = value;
+                Terminate();
+                Initialize();
+            }
+        }
 
         // Returns the peak level during the last frame.
         public static float GetPeakLevel(FilterType filter)
@@ -62,9 +100,9 @@ namespace Lasp
 
         static void Initialize()
         {
-            _stream = new Lasp.LaspStream();
-
-            if (!_stream.Open())
+            _stream = Lasp.CreateStream(_currentDevice);
+            
+            if (!_stream.Open(_currentChannelCount))
                 Debug.LogWarning("LASP: Failed to open the default audio input device.");
 
             LaspTerminator.Create(Terminate);
