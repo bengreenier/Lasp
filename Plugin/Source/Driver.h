@@ -155,7 +155,7 @@ namespace Lasp
             params.hostApiSpecificStreamInfo = nullptr;
             params.sampleFormat = paFloat32;
             params.suggestedLatency = deviceInfo->defaultLowInputLatency;
-
+			
             auto err = Pa_OpenStream(
                 &stream_,
                 &params,
@@ -205,7 +205,7 @@ namespace Lasp
                 buffer_hpf.pushFrame(hpf2.feedSample(hpf1.feedSample(input)));
             }
 
-            return 0;
+            return paContinue;
         }
     };
 }
